@@ -68,16 +68,23 @@ new dependencies, check in the package configuration files for new packages to
 install. Debian based distros will have their dependencies listed
 in `debian/control` and RPM based ones in `packaging/lutris.spec`.
 
-The PyGOject introspection libraries are not regular python packages, for that
-reason, using a virtualenv for development is heavily discouraged. Make
-sure to always use PyGOject from your distribution's package manager. Also
-install the necessary GObject bindings as described in the INSTALL file.
+The PyGObject introspection libraries are not regular Python packages. Install
+PyGObject and the required GTK/GObject introspection libraries from your
+distribution's package manager, as described in the INSTALL file. The UV
+development environment uses `--system-site-packages` so it can use those
+distribution-provided bindings. Python, DBus, GTK, and Cairo development
+headers are also required when Python packages need to compile native
+extensions (for example, `python3-dev` and `libdbus-1-dev` on Debian-based
+systems).
 
 Set up your development environment
 -----------------------------------
 
-To ensure you have the proper tools installed run `make dev`
-This will install all necessary python to allow testing and validating your code.
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then run
+`make dev` from the repository root. This creates `.venv` using the system
+Python, installs the locked project and development dependencies, and installs
+the git pre-commit hook. Use `make sync` to refresh the environment from
+`uv.lock` without installing the hook.
 
 This project includes .editorconfig so you're good to go if you're using any
 editor/IDE that supports this. Otherwise make sure to configure your max line
@@ -169,6 +176,8 @@ Build tooling
 
 * ``pyproject.toml`` is the single source of truth for Python packaging
   metadata and for ruff/mypy/pyright configuration.
+* ``uv.lock`` pins Python dependencies for reproducible development and CI
+  environments. Update it with ``uv lock`` when changing dependencies.
 * ``meson.build`` (plus ``po/meson.build``) drives the install layout used by
   distro packages.
 * The root ``Makefile`` holds developer tasks only. Release, packaging and

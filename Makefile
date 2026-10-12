@@ -7,14 +7,17 @@
 #
 # Run `make help` to list the common developer targets.
 
-PYTHON:=$(shell which python3)
-PIP:=$(PYTHON) -m pip
+PYTHON ?= python3
+UV ?= uv
+PYGOBJECT_STUBS_CONFIG = --config-settings-package pygobject-stubs:config=Gtk3,Gdk3,Soup2
 
 .DEFAULT_GOAL := help
+.PHONY: help test cover sync install-hooks dev style format check ruff_lint syntax-compat annotation-compat po-check mypy mypy-reset-baseline appimage sc styles checks
 
 help:
 	@echo "Common developer tasks:"
-	@echo "  make dev            Install development dependencies"
+	@echo "  make dev            Create the development environment and install dependencies"
+	@echo "  make sync           Sync Python dependencies from uv.lock"
 	@echo "  make test           Run the unit test suite"
 	@echo "  make cover          Run the test suite with a coverage report"
 	@echo "  make check          Run every static-analysis check"
@@ -30,49 +33,47 @@ help:
 # Tests
 # ======
 
-test:
+test: sync
 	rm tests/fixtures/pga.db -f
-	nose2
+	$(UV) run --locked --no-sync nose2
 
-cover:
+cover: sync
 	rm tests/fixtures/pga.db -f
 	rm tests/coverage/ -rf
-	nose2 --with-coverage --cover-package=lutris --cover-html --cover-html-dir=tests/coverage
+	$(UV) run --locked --no-sync nose2 --with-coverage --cover-package=lutris --cover-html --cover-html-dir=tests/coverage
 
 # ==================
 # Environment setup
 # ==================
 
-req-python:
-	pip3 install PyYAML lxml requests Pillow setproctitle python-magic distro dbus-python types-requests \
-	 types-PyYAML evdev PyGObject pypresence protobuf moddb
+sync:
+	$(UV) venv --python "$(PYTHON)" --system-site-packages
+	$(UV) sync --locked --group dev $(PYGOBJECT_STUBS_CONFIG)
 
 install-hooks:
 	ln -sf -t .git/hooks/ ../../.hooks/pre-commit
 
-dev: install-hooks
-	pip3 install ruff==0.12.1 mypy==1.16.1 mypy-baseline nose2
-	pip3 install 'pygobject-stubs>=2.17.0' --no-cache-dir --config-settings=config=Gtk3,Gdk3,Soup2
+dev: sync install-hooks
 
 # ============
 # Style checks
 # ============
 
-style:
-	ruff format . --check
+style: sync
+	$(UV) run --locked --no-sync ruff format . --check
 
-format:
-	ruff check --select I --fix
-	ruff format .
+format: sync
+	$(UV) run --locked --no-sync ruff check --select I --fix
+	$(UV) run --locked --no-sync ruff format .
 
 # ===============
 # Static analysis
 # ===============
 
-check: ruff_lint mypy syntax-compat annotation-compat po-check
+check: sync ruff_lint mypy syntax-compat annotation-compat po-check
 
-ruff_lint:
-	ruff check .
+ruff_lint: sync
+	$(UV) run --locked --no-sync ruff check .
 
 syntax-compat:
 	python3 -m compileall -q lutris/
@@ -83,11 +84,11 @@ annotation-compat:
 po-check:
 	@for f in po/*.po; do msgfmt --check "$$f" -o /dev/null; done
 
-mypy:
-	mypy . --python-version 3.10 --install-types --non-interactive 2>&1 | mypy-baseline filter
+mypy: sync
+	$(UV) run --locked --no-sync mypy . --python-version 3.10 2>&1 | $(UV) run --locked --no-sync mypy-baseline filter
 
-mypy-reset-baseline:  # Add new typing errors to mypy. Use sparingly.
-	mypy . --python-version 3.10 --install-types --non-interactive 2>&1 | mypy-baseline sync
+mypy-reset-baseline: sync  # Add new typing errors to mypy. Use sparingly.
+	$(UV) run --locked --no-sync mypy . --python-version 3.10 2>&1 | $(UV) run --locked --no-sync mypy-baseline sync
 
 # ==============================
 # Packaging (developer-facing)
