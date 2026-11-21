@@ -79,40 +79,44 @@ properties:
     description: The runner to be used by this game
     type: string
     enum:
+      - 86box
       - ags
-      - atari800
-      - browser
-      - citra
-      - desmume
+      - azahar
+      - basiliskii
+      - cemu
       - dgen
       - dolphin
       - dosbox
+      - duckstation
+      - easyrpg
       - frotz
       - fsuae
       - hatari
-      - jzintv
       - libretro
       - linux
       - mame
-      - mednafen
-      - mupen64plus
-      - o2em
-      - openmsx
-      - osmose
+      - melonds
+      - mgba
+      - minivmac
       - pcsx2
-      - pcsxr
+      - pico8
       - ppsspp
       - reicast
+      - rosaliesmupengui
       - rpcs3
+      - ruffle
+      - ryujinx
       - scummvm
-      - snes9x
+      - shadps4
+      - sheepshaver
       - steam
-      - winesteam
-      - stella
-      - vice
-      - virtualjaguar
+      - supermodel
+      - tic80
+      - vita3k
       - web
       - wine
+      - xemu
+      - xenia
       - yuzu
       - zdoom
   script:
