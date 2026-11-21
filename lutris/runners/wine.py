@@ -3,8 +3,9 @@
 # pylint: disable=too-many-lines
 import os
 import shlex
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from gettext import gettext as _
+from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, Any
 
 from lutris import settings
@@ -21,7 +22,7 @@ from lutris.exceptions import (
     UnspecifiedVersionError,
 )
 from lutris.game import Game
-from lutris.runners import RunnerInstallationError
+from lutris.runners import NonInstallableRunnerError, RunnerInstallationError
 from lutris.runners.commands.wine import (  # noqa: F401 pylint: disable=unused-import
     create_prefix,
     delete_registry_key,
@@ -52,6 +53,7 @@ from lutris.util.wine.wine import (
     GE_PROTON_LATEST,
     WINE_DEFAULT_ARCH,
     WINE_PATHS,
+    clear_wine_version_cache,
     detect_arch,
     get_default_wine_version,
     get_installed_wine_versions,
@@ -67,8 +69,7 @@ from lutris.util.wine.wine import (
 )
 
 if TYPE_CHECKING:
-    from lutris.api import RunnerVersionDict
-    from lutris.delegates import Delegate
+    from lutris.delegates import Delegate, InstallUIDelegate
     from lutris.monitored_command import MonitoredCommand
 
 
@@ -76,13 +77,12 @@ def is_umu_managed_version(version: str | None) -> bool:
     """True if this Wine 'version' is actually launched through umu: the 'ge-proton'
     sentinel or any Proton build. umu fetches Proton on demand, so there is no Wine
     runner build for Lutris to download or install for these versions."""
-    return version == GE_PROTON_LATEST or proton.is_proton_version(version) or proton.is_ge_proton_release(version)
+    return version == GE_PROTON_LATEST or proton.is_proton_version(version) or proton.is_proton_release(version)
 
 
-def is_missing_ge_proton_release(version: str | None) -> bool:
-    """True if the version pins a GE-Proton release that isn't installed. umu only
-    downloads the latest GE-Proton, so Lutris has to download pinned releases itself."""
-    return proton.is_ge_proton_release(version) and not proton.is_proton_version(version)
+def is_missing_proton_release(version: str | None) -> bool:
+    """Check if a pinned upstream Proton release needs to be installed."""
+    return proton.is_proton_release(version) and not proton.is_proton_version(version)
 
 
 def _is_proton_config(config: LutrisConfig) -> bool:
@@ -355,7 +355,7 @@ class wine(Runner):
             "default": True,
             "help": _(
                 "Use FSR to upscale the game window to native resolution.\n"
-                "Requires Lutris Wine FShack >= 6.13 and setting the game to a lower resolution.\n"
+                "Requires a Wine or Proton build with FSR and a lower resolution in the game's settings.\n"
                 "Does not work with games running in borderless window mode or that perform their own upscaling."
             ),
         },
@@ -364,20 +364,14 @@ class wine(Runner):
             "label": _("Enable BattlEye Anti-Cheat"),
             "type": "bool",
             "default": True,
-            "help": _(
-                "Enable support for BattlEye Anti-Cheat in supported games\n"
-                "Requires Lutris Wine 6.21-2 and newer or any other compatible Wine build.\n"
-            ),
+            "help": _("Use the Proton BattlEye Runtime installed through Steam for supported games."),
         },
         {
             "option": "eac",
             "label": _("Enable Easy Anti-Cheat"),
             "type": "bool",
             "default": True,
-            "help": _(
-                "Enable support for Easy Anti-Cheat in supported games\n"
-                "Requires Lutris Wine 7.2 and newer or any other compatible Wine build.\n"
-            ),
+            "help": _("Use the Proton EasyAntiCheat Runtime installed through Steam for supported games."),
         },
         {
             "option": "Desktop",
@@ -623,12 +617,6 @@ class wine(Runner):
                 arch = WINE_DEFAULT_ARCH
         return arch
 
-    def get_runner_version(self, version: str | None = None) -> "RunnerVersionDict | None":
-        if version in WINE_PATHS:
-            return {"version": version}
-
-        return super().get_runner_version(version)
-
     def read_version_from_config(self) -> str:
         """Return the Wine version to use: the game's, else the runner's, else the
         global Wine default."""
@@ -754,7 +742,7 @@ class wine(Runner):
             version = self.get_installer_runner_version(interpreter.installer, use_default=True)
         except MisconfigurationError:
             return False
-        if is_missing_ge_proton_release(version):
+        if is_missing_proton_release(version):
             return False
         # Proton versions (including the 'ge-proton' sentinel) are managed by umu and
         # fetched on demand at launch; there is no Wine runner build to download, so the
@@ -766,50 +754,59 @@ class wine(Runner):
         except MisconfigurationError:
             return False
 
-    def install(self, install_ui_delegate, version=None, callback=None):
-        if is_missing_ge_proton_release(version):
-            self.install_ge_proton(install_ui_delegate, version, callback=callback)
+    def install(
+        self,
+        install_ui_delegate: "InstallUIDelegate",
+        version: str | None = None,
+        callback: Callable[[], None] | None = None,
+    ) -> None:
+        version = version or self.read_version_from_config()
+        if version and is_missing_proton_release(version):
+            self.install_proton_release(install_ui_delegate, version, callback=callback)
             return
-        # umu manages Proton on demand; these versions have no downloadable Wine build,
-        # so "installing" one is a no-op. Skipping here keeps the installer flow, the
-        # "install runner?" dialog, and CLI installs from failing with a spurious
-        # "The 'ge-proton' version of the 'wine' runner can't be downloaded" error.
-        if is_umu_managed_version(version):
-            logger.info("Wine version '%s' is provided by umu; nothing to install.", version)
+        if is_umu_managed_version(version) or self.is_installed(version=version, fallback=False):
             if callback:
                 callback()
             return
-        super().install(install_ui_delegate, version=version, callback=callback)
+        raise NonInstallableRunnerError(
+            _("Wine build '%s' is unavailable. Choose a Proton release or a locally installed Wine build.") % version
+        )
 
-    def install_ge_proton(self, install_ui_delegate, version: str, callback=None) -> None:
-        """Download a GE-Proton release from GitHub into compatibilitytools.d. GE-Proton
-        builds are not served by the Lutris API, and the runner's own folder only holds
-        the Wine builds that are."""
+    def install_proton_release(
+        self, install_ui_delegate: "InstallUIDelegate", version: str, callback: Callable[[], None] | None = None
+    ) -> None:
+        """Download a Proton release from its upstream repository into compatibilitytools.d."""
         try:
-            urls = proton.get_ge_proton_release_urls(version)
+            urls = proton.get_proton_release_urls(version)
         except (HTTPError, ValueError) as ex:
             raise RunnerInstallationError(_("Failed to retrieve %s information: %s") % (version, ex)) from ex
         if not urls:
             raise RunnerInstallationError(_("%s has no build for the %s architecture.") % (version, LINUX_SYSTEM.arch))
         archive_url, checksum_url = urls
-        archive = os.path.join(settings.CACHE_DIR, os.path.basename(archive_url))
-        logger.info("Downloading %s from %s", version, archive_url)
-        if not install_ui_delegate.download_install_file(archive_url, archive):
-            logger.info("Download canceled by the user.")
-            return
-
         try:
-            expected_checksum = proton.get_ge_proton_checksum(checksum_url)
+            expected_checksum = proton.get_proton_checksum(checksum_url)
         except HTTPError as ex:
             raise RunnerInstallationError(_("Failed to retrieve the checksum of %s: %s") % (version, ex)) from ex
-        if not expected_checksum or system.get_file_checksum(archive, "sha512") != expected_checksum:
-            os.remove(archive)
+        if not expected_checksum:
             raise RunnerInstallationError(_("The %s download is corrupt; its checksum does not match.") % version)
 
+        filename = os.path.basename(archive_url)
+        os.makedirs(settings.CACHE_DIR, exist_ok=True)
         compat_dir = proton.get_steam_compat_dir()
-        os.makedirs(compat_dir, exist_ok=True)
-        logger.info("Installing %s in %s", version, compat_dir)
-        self.extract(archive=archive, dest=compat_dir, merge_single=False, callback=callback)
+        with TemporaryDirectory(dir=settings.CACHE_DIR) as download_dir:
+            archive = os.path.join(download_dir, filename)
+            logger.info("Downloading %s from %s", version, archive_url)
+            if not install_ui_delegate.download_install_file(archive_url, archive):
+                logger.info("Download canceled by the user.")
+                return
+            if system.get_file_checksum(archive, "sha512") != expected_checksum:
+                raise RunnerInstallationError(_("The %s download is corrupt; its checksum does not match.") % version)
+            logger.info("Installing %s in %s", version, compat_dir)
+            executable = f"{filename.removesuffix('.tar.gz')}/proton"
+            self.extract(archive, compat_dir, merge_single=False, executable=executable)
+        clear_wine_version_cache()
+        if callback:
+            callback()
 
     def get_installer_runner_version(
         self, installer, use_runner_config: bool = True, use_default: bool = False
@@ -1202,11 +1199,11 @@ class wine(Runner):
         if self.runner_config.get("fsr"):
             env["WINE_FULLSCREEN_FSR"] = "1"
 
-        if self.runner_config.get("battleye"):
-            env["PROTON_BATTLEYE_RUNTIME"] = os.path.join(settings.RUNTIME_DIR, "battleye_runtime")
-
-        if self.runner_config.get("eac"):
-            env["PROTON_EAC_RUNTIME"] = os.path.join(settings.RUNTIME_DIR, "eac_runtime")
+        anti_cheat_options = {"PROTON_BATTLEYE_RUNTIME": "battleye", "PROTON_EAC_RUNTIME": "eac"}
+        if any(self.runner_config.get(option) for option in anti_cheat_options.values()):
+            for variable, path in proton.get_anti_cheat_runtimes().items():
+                if self.runner_config.get(anti_cheat_options[variable]):
+                    env[variable] = path
 
         # Proton brings its own DXVK and VKD3D, which need Vulkan; without it, WineD3D
         has_vulkan = LINUX_SYSTEM.is_vulkan_supported()

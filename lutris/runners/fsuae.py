@@ -7,6 +7,7 @@ from lutris import settings
 from lutris.runners.runner import Runner
 from lutris.util import system
 from lutris.util.display import get_display_manager
+from lutris.util.upstream import ReleaseSource
 
 AMIGAS: dict[str, Any] = {
     "A500": {
@@ -91,7 +92,6 @@ def scan_dir_for_bios(path):
 class fsuae(Runner):
     human_name = _("FS-UAE")
     description = _("Amiga emulator")
-    flatpak_id = "net.fsuae.FS-UAE"
     platform_dict = {model["name"]: key for key, model in AMIGAS.items()}
 
     cpumodel_choices = [
@@ -171,7 +171,10 @@ class fsuae(Runner):
         ("400%", "400"),
         ("800%", "800"),
     ]
-    runner_executable = "fs-uae/fs-uae"
+    runner_executable = "fs-uae/Linux/x86-64/fs-uae"
+    system_executable = "fs-uae"
+    upstream = ReleaseSource("FrodeSolheim/fs-uae", r"^FS-UAE_.*_Linux_x86-64\.tar\.xz$")
+    upstream_arch = "x86_64"
     game_options = [
         {
             "option": "main_file",
@@ -367,7 +370,7 @@ class fsuae(Runner):
     ]
 
     @property
-    def directory(self):
+    def directory(self) -> str:
         return os.path.join(settings.RUNNER_DIR, "fs-uae")
 
     def get_absolute_path(self, path):

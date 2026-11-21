@@ -242,10 +242,9 @@ installer scripts.
 Runner configuration directives
 ===============================
 
-Runners can be customized in a section named after the runner identifier
-(``slug`` field in the API).  A complete list of all runners is available at
-https://lutris.net/api/runners.  Use the runner's slug as the runner
-identifier. Please keep the amount of runner customization to a minimum, only
+Runners can be customized in a section named after the runner identifier.
+Run ``lutris --list-runners`` to list the runner identifiers in your build.
+Please keep the amount of runner customization to a minimum, only
 adding what is needed to make the game run correctly. A lot of runner options
 do not have their place in Lutris installers and are reserved for the user's
 preferences.

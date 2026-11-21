@@ -98,6 +98,7 @@ properties:
       - melonds
       - mgba
       - minivmac
+      - openmsx
       - pcsx2
       - pico8
       - ppsspp

@@ -12,6 +12,7 @@ __all__ = [
     "libretro",
     "linux",
     "mame",
+    "openmsx",
     "pcsx2",
     "pico8",
     "reicast",
