@@ -684,7 +684,7 @@ class Game:
         game_config = self.config.game_config
 
         # Skip MAME roms referenced by their ID
-        if self.runner_name == "mame":
+        if self.runner_name == "libretro" and game_config.get("core") == "mame":
             if "main_file" in game_config and "." not in game_config["main_file"]:
                 return ""
 
@@ -1211,8 +1211,6 @@ def export_game(slug: str, dest_dir: str) -> None:
     exportable_runners = [
         "linux",
         "wine",
-        "dosbox",
-        "scummvm",
     ]
     db_game = games_db.get_game_by_field(slug, "slug")
     if not db_game:

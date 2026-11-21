@@ -5,7 +5,6 @@ from pathlib import Path
 
 from lutris.exceptions import MissingGameExecutableError
 from lutris.runners.runner import GamePlayInfoDict, Runner
-from lutris.util.upstream import ReleaseSource
 
 
 class shadps4(Runner):
@@ -13,10 +12,7 @@ class shadps4(Runner):
     description = _("PlayStation 4 emulator")
     platform_dict = Runner.to_platform_dict([_("Sony PlayStation 4")])
     runnable_alone = True
-    runner_executable = "shadps4/Shadps4-sdl.AppImage"
-    system_executable = "shadps4"
-    upstream = ReleaseSource("shadps4-emu/shadPS4", r"^shadps4-linux-sdl-.*\.zip$")
-    upstream_arch = "x86_64"
+    flatpak_id = "net.shadps4.shadPS4"
 
     game_options = [
         {

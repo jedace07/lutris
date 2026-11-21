@@ -479,26 +479,6 @@
         "lineCount": 1
       }
     ],
-    "lutris/migrations/mess_to_mame.py": [
-      {
-        "rule": "missing-union-attribute",
-        "startColumn": 21,
-        "endColumn": 43,
-        "lineCount": 1
-      },
-      {
-        "rule": "missing-union-attribute",
-        "startColumn": 12,
-        "endColumn": 34,
-        "lineCount": 1
-      },
-      {
-        "rule": "missing-union-attribute",
-        "startColumn": 45,
-        "endColumn": 67,
-        "lineCount": 1
-      }
-    ],
     "lutris/monitored_command.py": [
       {
         "rule": "invalid-argument-type",
@@ -548,26 +528,6 @@
         "rule": "invalid-argument-type",
         "startColumn": 8,
         "endColumn": 21,
-        "lineCount": 1
-      }
-    ],
-    "lutris/runners/hatari.py": [
-      {
-        "rule": "no-matching-overload",
-        "startColumn": 16,
-        "endColumn": 53,
-        "lineCount": 1
-      },
-      {
-        "rule": "no-matching-overload",
-        "startColumn": 28,
-        "endColumn": 84,
-        "lineCount": 1
-      },
-      {
-        "rule": "invalid-argument-type",
-        "startColumn": 22,
-        "endColumn": 27,
         "lineCount": 1
       }
     ],
@@ -692,14 +652,6 @@
         "rule": "redundant-cast",
         "startColumn": 39,
         "endColumn": 81,
-        "lineCount": 1
-      }
-    ],
-    "lutris/runners/scummvm.py": [
-      {
-        "rule": "invalid-argument-type",
-        "startColumn": 27,
-        "endColumn": 58,
         "lineCount": 1
       }
     ],
@@ -970,20 +922,6 @@
         "rule": "possibly-missing-submodule",
         "startColumn": 15,
         "endColumn": 27,
-        "lineCount": 1
-      }
-    ],
-    "lutris/services/dolphin.py": [
-      {
-        "rule": "lost-keyword-for-regular-parameter",
-        "startColumn": 8,
-        "endColumn": 43,
-        "lineCount": 1
-      },
-      {
-        "rule": "invalid-argument-type",
-        "startColumn": 54,
-        "endColumn": 64,
         "lineCount": 1
       }
     ],

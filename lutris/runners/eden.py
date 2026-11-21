@@ -6,8 +6,10 @@ from shutil import copyfile
 from lutris.exceptions import MissingGameExecutableError
 from lutris.runners.runner import Runner
 from lutris.util import system
+from lutris.util.flatpak import get_app_dir
 from lutris.util.log import logger
-from lutris.util.upstream import ReleaseSource
+
+FLATPAK_ID = "dev.eden_emu.eden"
 
 
 class eden(Runner):
@@ -15,10 +17,7 @@ class eden(Runner):
     platform_dict = Runner.to_platform_dict([_("Nintendo Switch")])
     description = _("Nintendo Switch emulator")
     runnable_alone = True
-    runner_executable = "eden/Eden.AppImage"
-    system_executable = "eden"
-    upstream = ReleaseSource("eden-emu/eden", r"^Eden-Linux-.*-amd64-gcc-standard\.AppImage$", host="git.eden-emu.dev")
-    upstream_arch = "x86_64"
+    flatpak_id = FLATPAK_ID
     game_options = [
         {
             "option": "main_file",
@@ -51,9 +50,9 @@ class eden(Runner):
     @property
     def data_dir(self):
         """Return dir where Eden files lie."""
-        candidates = ("~/.local/share/eden",)
+        candidates = (str(get_app_dir(FLATPAK_ID) / "data" / "eden"), os.path.expanduser("~/.local/share/eden"))
         for candidate in candidates:
-            path = system.fix_path_case(os.path.join(os.path.expanduser(candidate), "nand"))
+            path = system.fix_path_case(os.path.join(candidate, "nand"))
             if system.path_exists(path):
                 return path[: -len("nand")]
 

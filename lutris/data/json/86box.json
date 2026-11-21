@@ -2,12 +2,9 @@
     "name": "86box",
     "human_name": "86Box",
     "description": "86Box is an open-source, low-level PC emulator.",
+    "flatpak_id": "net._86box._86Box",
     "platforms": ["MS-DOS"],
     "runnable_alone": "True",
-    "runner_executable": "86Box.AppImage",
-    "system_executable": "86Box",
-    "upstream": {"repo": "86Box/86Box", "asset": "^86Box-Linux-x86_64-.*\\.AppImage$"},
-    "upstream_arch": "x86_64",
     "game_options": [
         {
             "option": "main_file",

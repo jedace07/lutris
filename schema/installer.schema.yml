@@ -81,45 +81,19 @@ properties:
     enum:
       - 86box
       - ags
-      - azahar
       - basiliskii
-      - blastem
-      - cemu
-      - dolphin
-      - dosbox
-      - duckstation
-      - easyrpg
       - eden
-      - flycast
-      - fsuae
       - gargoyle
-      - hatari
       - libretro
       - linux
-      - mame
-      - melonds
-      - mgba
-      - minivmac
-      - openmsx
-      - pcsx2
       - pico8
-      - ppsspp
-      - rosaliesmupengui
-      - rpcs3
       - ruffle
       - ryubing
-      - scummvm
       - shadps4
       - sheepshaver
       - steam
-      - supermodel
-      - tic80
-      - uzdoom
-      - vita3k
       - web
       - wine
-      - xemu
-      - xenia
   script:
     description: Main script
     type: object
@@ -453,7 +427,7 @@ properties:
                   description: File id or path to .conf file
                 exit:
                   type: boolean
-                  description: Exit DOSBox when the executable is terminated
+                  description: Ignored, since RetroArch's DOSBox core runs until it is closed
             input_menu:
               type: object
               description: Display a drop-down menu with options

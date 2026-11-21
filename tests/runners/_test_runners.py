@@ -16,7 +16,7 @@ class ImportRunnerTest(DatabaseTester):
         self.assertIn("linux", runner_list)
         self.assertIn("wine", runner_list)
         self.assertIn("libretro", runner_list)
-        self.assertIn("fsuae", runner_list)
+        self.assertIn("eden", runner_list)
 
     def test_import_module(self):
         for runner_name in runners.__all__:

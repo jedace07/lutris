@@ -2,11 +2,8 @@
     "name": "ruffle",
     "human_name": "Ruffle",
     "description": "Emulates Flash games",
+    "flatpak_id": "rs.ruffle.Ruffle",
     "platforms": ["Flash"],
-    "runner_executable": "ruffle",
-    "system_executable": "ruffle",
-    "upstream": {"repo": "ruffle-rs/ruffle", "asset": "^ruffle-.*-linux-x86_64\\.tar\\.gz$"},
-    "upstream_arch": "x86_64",
     "game_options": [
         {
             "option": "main_file",

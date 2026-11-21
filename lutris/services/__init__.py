@@ -1,27 +1,21 @@
 """Service package"""
 
-import os
 from typing import TYPE_CHECKING
 
 from lutris import settings
 from lutris.services.amazon import AmazonService
 from lutris.services.battlenet import BattleNetService
 from lutris.services.dlsite import DlsiteService
-from lutris.services.dolphin import DolphinService
 from lutris.services.ea_app import EAAppService
 from lutris.services.egs import EpicGamesStoreService
 from lutris.services.gamejolt import GameJoltService
 from lutris.services.gog import GOGService
 from lutris.services.humblebundle import HumbleBundleService
 from lutris.services.itchio import ItchIoService
-from lutris.services.mame import MAMEService
-from lutris.services.scummvm import SCUMMVM_CONFIG_FILE, ScummvmService
 from lutris.services.steam import SteamService
 from lutris.services.ubisoft import UbisoftConnectService
 from lutris.services.xdg import XDGService
 from lutris.services.zoom import ZoomService
-from lutris.util import system
-from lutris.util.dolphin.cache_reader import DOLPHIN_GAME_CACHE_FILE
 from lutris.util.linux import LINUX_SYSTEM
 
 if TYPE_CHECKING:
@@ -49,25 +43,10 @@ def get_services() -> dict[str, "type[BaseService]"]:
         _services["xdg"] = XDGService
     if LINUX_SYSTEM.has_steam():
         _services["steam"] = SteamService
-    if system.path_exists(DOLPHIN_GAME_CACHE_FILE):
-        _services["dolphin"] = DolphinService
-    if system.path_exists(SCUMMVM_CONFIG_FILE):
-        _services["scummvm"] = ScummvmService
     return _services
 
 
 SERVICES = get_services()
-
-
-# Those services are not yet ready to be used
-def get_wip_services() -> dict[str, "type[BaseService]"]:
-    return {"mame": MAMEService}
-
-
-WIP_SERVICES = get_wip_services()
-
-if os.environ.get("LUTRIS_ENABLE_ALL_SERVICES"):
-    SERVICES.update(WIP_SERVICES)
 
 
 def get_enabled_services():

@@ -47,6 +47,14 @@ with the following metadata.
 * ``slug``: Installer identifier
 * ``runner``: Runner used for the game.
 
+Emulators run through RetroArch, with the ``libretro`` runner and a core, or
+through their Flathub builds. Scripts written for a standalone emulator that a
+libretro core replaced (``dosbox``, ``scummvm``, ``mame``, ``dolphin``,
+``pcsx2``, ``ppsspp`` and the others) still install: Lutris uses the
+``libretro`` runner with that emulator's core, keeps the ``game`` section, and
+ignores the emulator's own section. Scripts for ``yuzu``, ``ryujinx`` and
+``frotz`` use ``eden``, ``ryubing`` and ``gargoyle``.
+
 Variable substitution
 =====================
 
@@ -156,8 +164,9 @@ Lutris supports the following game identifiers:
 Example: The `appid` for https://store.steampowered.com/app/238960/Path_of_Exile/ is `238960`.
 This ID is used for installing and running the game.
 
-`game_id`: Identifier used for ScummVM games. Can be looked up
-on the game compatibility list: https://www.scummvm.org/compatibility/
+`game_id`: Identifier used for ScummVM games, which run on the libretro
+``scummvm`` core. Can be looked up on the game compatibility list:
+https://www.scummvm.org/compatibility/
 
 `gogid`: GOG identifier. Can be looked up on https://www.gogdb.org/products Be
 sure to reference the base game and not one of its package or DLC.
@@ -167,8 +176,8 @@ Example: The `gogid` for Darksiders III is 1246703238
 other than using the order details from the HB API. Lutris will soon provide
 easier ways to find this ID.
 
-`main_file`: For MAME games, the `main_file` can refer to a MAME ID instead of
-a file path.
+`main_file`: For games on the libretro ``mame`` core, the `main_file` can refer
+to a MAME ID instead of a file path.
 
 Common game section entries
 ---------------------------
@@ -181,13 +190,13 @@ Example: ``main_file: game.rom``.
 Can also be used to pass the URL for web based games: ``main_file: http://www...``
 
 ``args``: Pass additional arguments to the command.
-Can be used with linux, wine, dosbox, scummvm, pico8 and uzdoom runners.
+Can be used with linux, wine and pico8 runners, and on the libretro ``mame`` core.
 Example: ``args: -c $GAMEDIR/exult.cfg``
 
 ``working_dir``: Set the working directory for the game executable.
 This is useful if the game needs to run from a different directory than the one
 the executable resides in.
-This directive can be used for Linux, Wine and Dosbox installers.
+This directive can be used for Linux, Wine and libretro DOSBox installers.
 Example: ``$GAMEDIR/path/to/game``
 
 ``launch_configs``: When you have games with multiple executables (example: a game
@@ -231,11 +240,26 @@ the Steam client. The game must not have the Steam DRM to use this feature.
 Example: ``steamless_binary: $GAMEDIR/System/GMDX.exe``
 
 
-ScummVM
-^^^^^^^
+Libretro
+^^^^^^^^
 
-``path``: Location of the game files. This should be set to ``$GAMEDIR`` in
-installer scripts.
+``core``: The libretro core that runs the game, such as ``mgba`` or
+``dosbox_pure``. Lutris installs RetroArch from Flathub and the core from the
+Libretro buildbot when they're missing.
+
+``main_file``: The file the core loads.
+
+ScummVM games (``scummvm`` core) set ``path``, the location of the game files,
+which should be ``$GAMEDIR`` in installer scripts, and ``game_id``. Lutris
+writes the ``.scummvm`` file the core loads into ``path``.
+
+DOSBox games (``dosbox_pure`` core) can set ``config_file`` next to a
+``main_file`` that is a ``.conf`` file, as GOG's games do. The core loads a
+single file, so Lutris merges the two, settings first.
+
+MAME machines (``mame`` core) set ``machine`` and ``device``, which Lutris
+writes into the ``.cmd`` command line the core loads, with ``main_file`` as
+the device's media.
 
 
 
@@ -578,7 +602,7 @@ Some actions are specific to some runners, you can call them with the ``task``
 command. You must at least provide the ``name`` parameter which is the function
 that will be called. Other parameters depend on the task being called. It is
 possible to call functions from other runners by prefixing the task name with
-the runner's name (e.g., from a dosbox installer you can use the wineexec task
+the runner's name (e.g., from a libretro installer you can use the wineexec task
 with ``wine.wineexec`` as the task's ``name``)
 If the command you will run in the task doesn't exit with a return code of 0,
 you can specify an accepted return code like ``return_code: 1``
@@ -711,12 +735,13 @@ Currently, the following tasks are implemented:
     - task:
         name: winekill
 
-*   dosbox: ``dosexec`` Runs dosbox. Parameters are ``executable`` (optional
-    ``file ID`` or path to executable), ``config_file``
-    (optional ``file ID`` or path to .conf file), ``args`` (optional command
-    arguments), ``working_dir`` (optional working directory, defaults to the
-    ``executable``'s dir or the ``config_file``'s dir), ``exit`` (set to
-    ``false`` to prevent DOSBox to exit when the ``executable`` is terminated).
+*   libretro: ``dosexec`` Runs a DOS program on RetroArch's DOSBox Pure core,
+    and waits until RetroArch is closed. Parameters are ``executable``
+    (optional ``file ID`` or path to executable), ``config_file`` (optional
+    ``file ID`` or path to .conf file) and ``working_dir`` (optional working
+    directory, defaults to the ``executable``'s dir or the ``config_file``'s
+    dir). ``args`` and ``exit``, which configured standalone DOSBox, are
+    ignored. Scripts may still call it ``dosbox.dosexec``.
 
     Example::
 

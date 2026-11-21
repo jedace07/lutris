@@ -10,7 +10,6 @@ from lutris import settings
 from lutris.exceptions import MissingGameExecutableError
 from lutris.runners.runner import Runner, RunnerOptionDict
 from lutris.util import datapath, system
-from lutris.util.upstream import UpstreamSource, source_from_dict
 
 JSON_RUNNER_DIRS = [
     os.path.join(datapath.get(), "json"),
@@ -26,16 +25,12 @@ class JsonRunnerSpec:
     human_name: str
     description: str
     platform_dict: dict[str, str]
-    runner_executable: str | None
     system_executable: str | None
     system_options_override: list[RunnerOptionDict]
     entry_point_option: str
-    upstream: UpstreamSource | None
-    upstream_arch: str | None
     runnable_alone: bool | None
     flatpak_id: str | None
     env: dict[str, str]
-    working_dir: str | None
 
 
 _REQUIRED_KEYS = {
@@ -71,16 +66,12 @@ def _load_and_validate_json(path: str) -> JsonRunnerSpec:
         human_name=data["human_name"],
         description=data["description"],
         platform_dict=_to_platform_dict(path, data["platforms"]),
-        runner_executable=data.get("runner_executable"),
         system_executable=data.get("system_executable"),
         system_options_override=data.get("system_options_override", []),
         entry_point_option=data.get("entry_point_option", "main_file"),
-        upstream=source_from_dict(data["upstream"]) if data.get("upstream") else None,
-        upstream_arch=data.get("upstream_arch"),
         runnable_alone=data.get("runnable_alone"),
         flatpak_id=data.get("flatpak_id"),
         env=data.get("env") or {},
-        working_dir=data.get("working_dir"),
     )
 
 
@@ -107,12 +98,9 @@ class JsonRunner(Runner):
         self.human_name = spec.human_name
         self.description = spec.description
         self.platform_dict = spec.platform_dict
-        self.runner_executable = spec.runner_executable
         self.system_executable = spec.system_executable
         self.system_options_override = spec.system_options_override
         self.entry_point_option = spec.entry_point_option
-        self.upstream = spec.upstream
-        self.upstream_arch = spec.upstream_arch
         self.runnable_alone = spec.runnable_alone
         self.flatpak_id = spec.flatpak_id
 
@@ -167,8 +155,6 @@ class JsonRunner(Runner):
         result = {"command": arguments}
         if self.spec.env:
             result["env"] = dict(self.spec.env)
-        if self.spec.working_dir == "runner":
-            result["working_dir"] = os.path.dirname(self.get_executable())
         return result
 
 

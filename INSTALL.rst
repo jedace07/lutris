@@ -33,8 +33,8 @@ To build on the host instead, use the ``org.flatpak.Builder`` app from Flathub
         --state-dir=build-flatpak/state build-flatpak/build packaging/flatpak/net.lutris.Lutris.yml
 
 Every CI build of ``main`` publishes a bundle, and every release has one
-attached. The first build compiles bundled tools such as DOSBox Staging and
-Mono. Later builds reuse flatpak-builder's cache.
+attached. The first build compiles bundled tools such as Mono. Later builds
+reuse flatpak-builder's cache.
 
 The sandbox can read and write your home directory and any drive mounted under
 ``/mnt``, ``/media`` or ``/run/media``. Games elsewhere need an override, for

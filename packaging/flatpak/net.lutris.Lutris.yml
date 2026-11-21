@@ -47,6 +47,11 @@ finish-args:
   # For Debian
   - --filesystem=/media
   - --filesystem=~/.var/app/com.valvesoftware.Steam:ro
+  # The emulator Flatpaks Lutris launches: RetroArch's cores and BIOS files, and the
+  # Switch emulators' key files
+  - --filesystem=~/.var/app/org.libretro.RetroArch:create
+  - --filesystem=~/.var/app/dev.eden_emu.eden:create
+  - --filesystem=~/.var/app/io.github.ryubing.Ryujinx:create
   - --filesystem=~/.config/MangoHud:ro
   - --env=PATH=/app/bin:/usr/bin:/app/utils/bin:/usr/lib/extensions/vulkan/MangoHud/bin/:/app/jre/bin/:/usr/lib/extensions/vulkan/gamescope/bin
   - --env=GST_PLUGIN_SYSTEM_PATH=/app/lib/gstreamer-1.0:/app/lib32/gstreamer-1.0:/app/lib/i386-linux-gnu/codecs-extra/lib/gstreamer-1.0:/app/lib/i386-linux-gnu/gstreamer-1.0:/usr/lib/extensions/gstreamer-1.0:/usr/lib/x86_64-linux-gnu/codecs-extra/lib/gstreamer-1.0:/usr/lib/i386-linux-gnu/codecs-extra/lib/gstreamer-1.0:/usr/lib/x86_64-linux-gnu/gstreamer-1.0:/usr/lib/i386-linux-gnu/gstreamer-1.0
@@ -579,27 +584,6 @@ modules:
         url: https://download.gnome.org/sources/GConf/3.2/GConf-3.2.6.tar.xz
         sha256: 1912b91803ab09a5eed34d364bf09fe3a2a9c96751fde03a4e0cfa51a04d784c
 
-  # Required by ScummVM
-
-  - name: libspeechd
-    config-opts:
-      - --disable-python
-      - --with-systemdsystemunitdir=/app/lib/systemd/system/speech-dispatcherd.service
-    sources:
-      - type: archive
-        url: https://github.com/brailcom/speechd/releases/download/0.12.1/speech-dispatcher-0.12.1.tar.gz
-        sha256: b14a5238d287d2dcce4dd42bbd66ca65fa228e7e683708267f7b34036f7ba4b4
-    modules:
-      - name: dotconf
-        sources:
-          - type: archive
-            url: https://github.com/williamh/dotconf/archive/refs/tags/v1.3.tar.gz
-            sha256: 7f1ecf40de1ad002a065a321582ed34f8c14242309c3547ad59710ae3c805653
-          - type: script
-            commands:
-              - autoreconf -fiv
-            dest-filename: autogen.sh
-
   # Environment setup
 
   - name: lutris-app-environment
@@ -670,36 +654,6 @@ modules:
     buildsystem: simple
     build-commands:
       - /usr/lib/sdk/openjdk17/install.sh
-
-  - name: retroarch
-    buildsystem: simple
-    cleanup:
-      - /share/applications/com.libretro.RetroArch.desktop
-      - /share/metainfo/com.libretro.RetroArch.metainfo.xml
-      - /share/pixmaps/com.libretro.RetroArch.svg
-    build-commands:
-      - ./configure --prefix=/app --disable-qt --enable-dbus
-      - make -j"${FLATPAK_BUILDER_N_JOBS}"
-      - make install
-    sources:
-      - type: archive
-        url: https://github.com/libretro/RetroArch/releases/download/v1.22.2/retroarch-sourceonly-1.22.2.tar.xz
-        sha256: 2a8b1713f7f4d2b53bad3e2297e48d78f5666098cf00d583d3e08f3c213f8aa6
-
-  # Supermodel's Linux build needs SDL2_net, which the SDK no longer includes
-  - modules/SDL2_net.json
-
-  - name: dosbox-staging
-    only-arches: [x86_64]
-    buildsystem: simple
-    build-commands:
-      - install -d /app/bin /app/libexec/dosbox-staging
-      - cp -a . /app/libexec/dosbox-staging
-      - ln -s ../libexec/dosbox-staging/dosbox /app/bin/dosbox
-    sources:
-      - type: archive
-        url: https://github.com/dosbox-staging/dosbox-staging/releases/download/v0.83.1/dosbox-staging-linux-x86_64-v0.83.1.tar.xz
-        sha256: 3c7c925e28a5c88ae9f9f1a315ad07d91176b135fbe5f6f240eeee148ed176b0
 
   # Needed for FreeSO
   - name: mono

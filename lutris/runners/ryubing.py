@@ -7,8 +7,10 @@ from shutil import copyfile
 from lutris.exceptions import MissingGameExecutableError
 from lutris.runners.runner import Runner
 from lutris.util import system
+from lutris.util.flatpak import get_app_dir
 from lutris.util.log import logger
-from lutris.util.upstream import ReleaseSource
+
+FLATPAK_ID = "io.github.ryubing.Ryujinx"
 
 
 class ryubing(Runner):
@@ -16,10 +18,7 @@ class ryubing(Runner):
     platform_dict = Runner.to_platform_dict([_("Nintendo Switch")])
     description = _("Nintendo Switch emulator")
     runnable_alone = True
-    runner_executable = "ryubing/Ryujinx"
-    system_executable = "Ryujinx"
-    upstream = ReleaseSource("ryubing/ryujinx", r"^ryujinx-[\d.]+-linux_x64\.tar\.gz$", host="git.ryujinx.app")
-    upstream_arch = "x86_64"
+    flatpak_id = FLATPAK_ID
 
     game_options = [
         {
@@ -52,11 +51,15 @@ class ryubing(Runner):
 
     @property
     def ryubing_data_dir(self) -> Path:
-        portable = Path(self.get_executable()).resolve().parent / "portable"
-        if portable.is_dir():
-            return portable
-        config_home = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
-        return Path(config_home) / "Ryujinx"
+        """Return where Ryubing keeps its system files: next to a custom executable that is
+        portable, in the user's configuration for one that isn't, or in the Flatpak's."""
+        if custom := self.runner_config.get("runner_executable"):
+            portable = Path(custom).resolve().parent / "portable"
+            if portable.is_dir():
+                return portable
+            config_home = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
+            return Path(config_home) / "Ryujinx"
+        return get_app_dir(FLATPAK_ID) / "config" / "Ryujinx"
 
     def play(self):
         """Run the game."""

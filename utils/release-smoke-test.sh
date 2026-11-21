@@ -601,10 +601,12 @@ scenario_existing() {
         fail "E4 settings: legacy Lutris.net credentials removed" "account files remain in $P_CACHE"
     fi
 
-    # E5 - the old runner option key is migrated
+    # E5 - the game of a standalone emulator moved to its RetroArch core
     out=$(cat "$legacy_yml" 2>/dev/null || true)
-    expect_contains "E5 migration: 'model' rewritten as 'platform'" "$out" "platform: a500"
-    expect_not_contains "E5 migration: old 'model' key removed" "$out" "model:"
+    expect_contains "E5 migration: FS-UAE game uses the PUAE core" "$out" "core: puae"
+    expect_not_contains "E5 migration: FS-UAE's 'model' key removed" "$out" "model:"
+    expect_eq "E5 migration: FS-UAE game runs on libretro" "libretro" \
+        "$(db_query "select runner from games where slug='legacy-emulator'")"
 
     # E6 - platform backfilled for games that had none
     expect_eq "E6 migration: linux game platform backfilled" "Linux" \

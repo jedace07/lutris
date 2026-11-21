@@ -22,6 +22,7 @@ from lutris.util.gog import apply_gog_config, find_gog_config_dir
 from lutris.util.gogdl import clear_stale_manifest, run_gogdl
 from lutris.util.jobs import schedule_repeating_at_idle
 from lutris.util.log import logger
+from lutris.util.retroarch.substitutes import translate_game_config, translate_runner
 from lutris.util.wine.wine import WINE_DEFAULT_ARCH, get_default_wine_version, get_wine_path_for_version
 
 
@@ -592,6 +593,11 @@ class CommandsMixin:
         if system.path_exists(support_path):
             self.merge({"src": support_path, "dst": self.target_path})
 
+    def _use_substitute_core(self, runner: str, game_config: dict) -> None:
+        """Install the game for the libretro core that replaced a standalone emulator."""
+        self.installer.script["game"] = translate_game_config(runner, game_config)
+        self.installer.runner = translate_runner(runner)
+
     def _get_scummvm_arguments(self, gog_config_path):
         """Return a ScummVM configuration from the GOG config files"""
         with open(gog_config_path, encoding="utf-8") as gog_config_file:
@@ -646,8 +652,7 @@ class CommandsMixin:
                     dosbox_config["config_file"] = config_file
                 else:
                     dosbox_config["main_file"] = config_file
-            self.installer.script["game"] = dosbox_config
-            self.installer.runner = "dosbox"
+            self._use_substitute_core("dosbox", dosbox_config)
         elif scummvm_found:
             self._extract_innosetup(file_id)
             arguments = None
@@ -657,8 +662,7 @@ class CommandsMixin:
             if not arguments:
                 raise RuntimeError("Unable to get ScummVM arguments")
             logger.info("ScummVM config: %s", arguments)
-            self.installer.script["game"] = arguments
-            self.installer.runner = "scummvm"
+            self._use_substitute_core("scummvm", arguments)
         else:
             args = "/SP- /NOCANCEL"
             if silent:
@@ -727,14 +731,12 @@ class CommandsMixin:
                 # Remove "config_file" from the dosbox config
                 dosbox_config.pop("config_file", None)
 
-            self.installer.script["game"] = dosbox_config
-            self.installer.runner = "dosbox"
+            self._use_substitute_core("dosbox", dosbox_config)
         elif scummvm_found:
             self._extract_innosetup(file_id)
             arguments = {"path": os.path.join(self.target_path, "Data"), "args": "--auto-detect"}
             logger.info("ScummVM config: %s", arguments)
-            self.installer.script["game"] = arguments
-            self.installer.runner = "scummvm"
+            self._use_substitute_core("scummvm", arguments)
         else:
             args = "/SP- /NOCANCEL"
             if silent:
@@ -1002,8 +1004,7 @@ class CommandsMixin:
             if remaining:
                 dosbox_config["config_file"] = remaining[0]
 
-        self.installer.script["game"] = dosbox_config
-        self.installer.runner = "dosbox"
+        self._use_substitute_core("dosbox", dosbox_config)
 
     def _configure_scummvm_from_depot(self, install_path, gog_config):
         """Configure a ScummVM game from depot download using playTasks args."""
@@ -1018,12 +1019,7 @@ class CommandsMixin:
         if parts:
             game_id = parts[-1]
             args = " ".join(parts[:-1])
-            self.installer.script["game"] = {
-                "game_id": game_id,
-                "path": install_path,
-                "args": args,
-            }
-            self.installer.runner = "scummvm"
+            self._use_substitute_core("scummvm", {"game_id": game_id, "path": install_path, "args": args})
 
     def install_or_extract(self, file_id):
         """Runs if file is executable or extracts if file is archive"""

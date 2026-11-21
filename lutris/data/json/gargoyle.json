@@ -2,11 +2,8 @@
     "name": "gargoyle",
     "human_name": "Gargoyle",
     "description": "Interactive fiction player for Z-machine, Glulx, TADS and other formats",
+    "flatpak_id": "io.github.garglk.Gargoyle",
     "platforms": ["Z-Machine"],
-    "runner_executable": "Gargoyle-x86_64.AppImage",
-    "system_executable": "gargoyle",
-    "upstream": {"repo": "garglk/garglk", "asset": "^Gargoyle-x86_64\\.AppImage$"},
-    "upstream_arch": "x86_64",
     "entry_point_option": "story",
     "game_options": [
         {

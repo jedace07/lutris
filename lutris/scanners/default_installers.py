@@ -1,114 +1,54 @@
+"""The configuration Lutris gives an imported ROM, for each platform it recognizes."""
+
+
+def _core(core: str, **options: str) -> dict[str, object]:
+    return {"runner": "libretro", "game": {"core": core, "main_file": "rom", **options}}
+
+
 DEFAULT_INSTALLERS = {
-    "3do": {
-        "runner": "libretro",
-        "game": {"core": "opera", "main_file": "rom"},
-    },
-    "sms": {
-        "runner": "libretro",
-        "game": {"core": "genesis_plus_gx", "main_file": "rom"},
-    },
-    "gg": {
-        "runner": "libretro",
-        "game": {"core": "genesis_plus_gx", "main_file": "rom"},
-    },
-    "md": {
-        "runner": "libretro",
-        "game": {"core": "genesis_plus_gx", "main_file": "rom"},
-    },
-    "pico": {
-        "runner": "libretro",
-        "game": {"core": "picodrive", "main_file": "rom"},
-    },
-    "segacd": {
-        "runner": "libretro",
-        "game": {"core": "picodrive", "main_file": "rom"},
-    },
-    "saturn": {
-        "runner": "libretro",
-        "game": {"core": "yabause", "main_file": "rom"},
-    },
-    "dc": {
-        "runner": "libretro",
-        "game": {"core": "flycast", "main_file": "rom"},
-    },
-    "colecovision": {
-        "runner": "libretro",
-        "game": {"core": "gearcoleco", "main_file": "rom"},
-    },
-    "atari800": {
-        "runner": "libretro",
-        "game": {"core": "atari800", "main_file": "rom"},
-    },
-    "atari2600": {
-        "runner": "libretro",
-        "game": {"core": "stella", "main_file": "rom"},
-    },
-    "lynx": {
-        "runner": "libretro",
-        "game": {"core": "handy", "main_file": "rom"},
-    },
-    "atari-st": {
-        "runner": "hatari",
-        "game": {
-            "disk-a": "rom",
-        },
-    },
-    "jaguar": {
-        "runner": "libretro",
-        "game": {"core": "virtualjaguar", "main_file": "rom"},
-    },
-    "amiga": {"runner": "fsuae", "game": {"main_file": "rom"}},
-    "amiga-1200": {"runner": "fsuae", "game": {"main_file": "rom"}, "fsuae": {"model": "A1200"}},
-    "amiga-cd32": {"runner": "fsuae", "game": {"main_file": "rom"}, "fsuae": {"model": "CD32"}},
-    "ds": {"runner": "libretro", "game": {"core": "melonds", "main_file": "rom"}},
-    "gb": {
-        "runner": "libretro",
-        "game": {"core": "gambatte", "main_file": "rom"},
-    },
-    "gba": {
-        "runner": "libretro",
-        "game": {"core": "vba_next", "main_file": "rom"},
-    },
-    "nes": {
-        "runner": "libretro",
-        "game": {"core": "mesen", "main_file": "rom"},
-    },
-    "snes": {
-        "runner": "libretro",
-        "game": {"core": "snes9x", "main_file": "rom"},
-    },
-    "n64": {
-        "runner": "libretro",
-        "game": {"core": "mupen64plus_next", "main_file": "rom"},
-    },
-    "gamecube": {"runner": "dolphin", "game": {"main_file": "rom", "platform": "0"}},
-    "wii": {"runner": "dolphin", "game": {"main_file": "rom", "platform": "1"}},
+    "3do": _core("opera"),
+    "sms": _core("genesis_plus_gx"),
+    "gg": _core("genesis_plus_gx"),
+    "md": _core("genesis_plus_gx"),
+    "pico": _core("picodrive"),
+    "segacd": _core("picodrive"),
+    "saturn": _core("yabause"),
+    "dc": _core("flycast"),
+    "colecovision": _core("gearcoleco"),
+    "atari800": _core("atari800"),
+    "atari2600": _core("stella"),
+    "lynx": _core("handy"),
+    "atari-st": _core("hatarib"),
+    "jaguar": _core("virtualjaguar"),
+    "amiga": _core("puae"),
+    "amiga-1200": _core("puae"),
+    "amiga-cd32": _core("puae"),
+    "ds": _core("melondsds"),
+    "gb": _core("gambatte"),
+    "gba": _core("vba_next"),
+    "nes": _core("mesen"),
+    "snes": _core("snes9x"),
+    "n64": _core("mupen64plus_next"),
+    "gamecube": _core("dolphin"),
+    "wii": _core("dolphin"),
     "switch": {"runner": "ryubing", "game": {"main_file": "rom"}},
-    "ps1": {
-        "runner": "libretro",
-        "game": {"core": "mednafen_psx_hw", "main_file": "rom"},
-    },
-    "ps2": {"runner": "pcsx2", "game": {"main_file": "rom"}},
-    "ps3": {"runner": "rpcs3", "game": {"main_file": "rom"}},
-    "psp": {
-        "runner": "libretro",
-        "game": {"core": "ppsspp", "main_file": "rom"},
-    },
-    "cdi": {"runner": "mame", "game": {"main_file": "rom", "device": "cdrm", "machine": "cdimono1"}},
-    "msx": {
-        "runner": "libretro",
-        "game": {"core": "bluemsx", "main_file": "rom"},
-    },
-    "archimedes": {"runner": "mame", "game": {"main_file": "rom", "device": "flop1", "machine": "aa4000"}},
-    "bbc": {"runner": "mame", "game": {"main_file": "rom", "device": "flop1", "machine": "bbcbp128"}},
-    "electron": {"runner": "mame", "game": {"main_file": "rom", "device": "flop1", "machine": "electron"}},
-    "astrocade": {"runner": "mame", "game": {"main_file": "rom", "device": "cart", "machine": "astrocde"}},
-    "wonderswancolor": {"runner": "mame", "game": {"main_file": "rom", "device": "cart", "machine": "wscolor"}},
-    "wonderswan": {"runner": "mame", "game": {"main_file": "rom", "device": "cart", "machine": "wswan"}},
-    "cpc6128disk": {"runner": "mame", "game": {"main_file": "rom", "device": "flop1", "machine": "cpc6128p"}},
-    "gx4000": {"runner": "mame", "game": {"main_file": "rom", "device": "cart", "machine": "gx4000"}},
-    "apple2": {"runner": "mame", "game": {"main_file": "rom", "device": "flop1", "machine": "apple2gs"}},
-    "spectrumcass": {"runner": "mame", "game": {"main_file": "rom", "device": "cass", "machine": "spectrum"}},
-    "c64prg": {"runner": "libretro", "game": {"core": "vice_x64", "main_file": "rom"}},
-    "c64g64": {"runner": "libretro", "game": {"core": "vice_x64", "main_file": "rom"}},
+    "ps1": _core("mednafen_psx_hw"),
+    "ps2": _core("pcsx2"),
+    "ps3": _core("rpcs3"),
+    "psp": _core("ppsspp"),
+    "cdi": _core("same_cdi"),
+    "msx": _core("bluemsx"),
+    # MAME runs machines without a core of their own from a command line Lutris writes
+    "archimedes": _core("mame", machine="aa4000", device="flop1"),
+    "bbc": _core("b2"),
+    "electron": _core("mame", machine="electron", device="flop1"),
+    "astrocade": _core("mame", machine="astrocde", device="cart"),
+    "wonderswancolor": _core("mednafen_wswan"),
+    "wonderswan": _core("mednafen_wswan"),
+    "cpc6128disk": _core("cap32"),
+    "gx4000": _core("cap32"),
+    "apple2": _core("applewin"),
+    "spectrumcass": _core("fuse"),
+    "c64prg": _core("vice_x64"),
+    "c64g64": _core("vice_x64"),
 }

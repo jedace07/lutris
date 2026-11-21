@@ -1,45 +1,52 @@
-"""DOSBox installer commands"""
+"""DOSBox install script tasks, which run through RetroArch's DOSBox Pure core."""
 
-# Standard Library
+from __future__ import annotations
+
 import os
+from gettext import gettext as _
 
-# Lutris Modules
-from lutris.runners import import_runner
+from lutris.exceptions import MissingExecutableError
 from lutris.util import system
 from lutris.util.log import logger
 
+DOSBOX_CORE = "dosbox_pure"
 
-def dosexec(config_file=None, executable=None, args=None, close_on_exit=True, working_dir=None):
-    """Execute Dosbox with given config_file."""
+
+def dosexec(
+    config_file: str | None = None,
+    executable: str | None = None,
+    args: str | None = None,
+    close_on_exit: bool = True,
+    working_dir: str | None = None,
+) -> None:
+    """Run a DOS program, or a DOSBox config file, and wait until RetroArch is closed.
+
+    DOSBox's own command line arguments, and closing when the program exits, don't apply to
+    the DOSBox Pure core, so 'args' and 'close_on_exit' are ignored."""
     if config_file:
-        run_with = "config {}".format(config_file)
-        if not working_dir:
-            working_dir = os.path.dirname(config_file)
+        content = config_file
     elif executable:
-        run_with = "executable {}".format(executable)
-        if not working_dir:
-            working_dir = os.path.dirname(executable)
-    else:
-        raise ValueError("Neither a config file or an executable were provided")
-    logger.debug("Running dosbox with %s", run_with)
-    working_dir = system.create_folder(working_dir)
-    dosbox = import_runner("dosbox")
-    dosbox_runner = dosbox()
-    command = [dosbox_runner.get_executable()]
-    if config_file:
-        command += ["-conf", config_file]
-    if executable:
         if not system.path_exists(executable):
             raise OSError("Can't find file {}".format(executable))
-        command += [executable]
-    if args:
-        command += args.split()
-    if close_on_exit:
-        command.append("-exit")
+        content = executable
+    else:
+        raise ValueError("Neither a config file or an executable were provided")
+    if args or not close_on_exit:
+        logger.debug("The DOSBox core ignores the arguments '%s' and close_on_exit=%s", args, close_on_exit)
+    working_dir = system.create_folder(working_dir or os.path.dirname(content))
+    # The libretro runner offers these tasks, so it's imported here instead of at the top
+    from lutris.runners.libretro import libretro  # noqa: PLC0415
+
+    retroarch = libretro()
+    core_path = retroarch.get_core_path(DOSBOX_CORE)
+    if not system.path_exists(core_path):
+        raise MissingExecutableError(_("RetroArch's DOSBox Pure core is not installed."))
+    logger.debug("Running %s with DOSBox Pure", content)
+    command = retroarch.get_command() + [f"--libretro={core_path}", content]
     system.execute(command, cwd=working_dir)
 
 
-def makeconfig(path, drives, commands):
+def makeconfig(path: str, drives: dict[str, str], commands: list[str]) -> None:
     system.create_folder(os.path.dirname(path))
     with open(path, "w", encoding="utf-8") as config_file:
         config_file.write("[autoexec]\n")

@@ -21,12 +21,10 @@ from lutris.runners import NonInstallableRunnerError, RunnerInstallationError
 from lutris.util import flatpak, strings, system
 from lutris.util.extract import ExtractError, extract_archive
 from lutris.util.graphics.gpu import get_gpus
-from lutris.util.http import HTTPError
 from lutris.util.linux import LINUX_SYSTEM
 from lutris.util.log import logger
 from lutris.util.process import Process
 from lutris.util.sniper import get_sniper_ld_library_path, get_sniper_run_command
-from lutris.util.upstream import UpstreamError, UpstreamSource
 
 if TYPE_CHECKING:
     from lutris.config import GameConfigDict, LaunchConfigDict, RunnerConfigDict, SystemConfigDict
@@ -65,13 +63,12 @@ class Runner:  # pylint: disable=too-many-public-methods
     # is called with a lutris.delegates.Delegate it can ask the user things through
     context_menu_entries = []
     require_libs = []
-    runner_executable: str | None = None
+    # A program found on PATH; runners with a Flatpak use it before the Flatpak
     system_executable: str | None = None
+    # The Flathub app this runner launches, and installs when it's missing
+    flatpak_id: str | None = None
     entry_point_option = "main_file"
-    upstream: UpstreamSource | None = None
-    upstream_arch: str | None = None
     arch = None  # If the runner is only available for an architecture that isn't x86_64
-    flatpak_id = None
     runner_name: str = ""
     human_name = ""
     use_sniper_runtime = False
@@ -93,12 +90,6 @@ class Runner:  # pylint: disable=too-many-public-methods
     @property
     def name(self) -> str:
         return self.runner_name or self.__class__.__name__
-
-    @property
-    def runner_executable_path(self) -> str:
-        if not self.runner_executable:
-            return ""
-        return os.path.join(self.runner_name, self.runner_executable) if self.runner_name else self.runner_executable
 
     @property
     def directory(self) -> str:
@@ -222,7 +213,7 @@ class Runner:  # pylint: disable=too-many-public-methods
 
     def get_runner_options(self) -> list[RunnerOptionDict]:
         runner_options = self.runner_options[:]
-        if self.runner_executable or self.system_executable:
+        if self.system_executable or self.flatpak_id:
             runner_options.append(
                 {
                     "option": "runner_executable",
@@ -253,21 +244,39 @@ class Runner:  # pylint: disable=too-many-public-methods
 
     def prepare_game_command(self, command: list[str], env: dict[str, str]) -> list[str]:
         """Apply runner-specific wrapping after launch configuration and environment overrides."""
+        if self.flatpak_id and self.flatpak_id in command:
+            return flatpak.add_environment(command, self.flatpak_id, env)
         return command
 
     def get_executable(self) -> str:
+        """Return the executable the user configured, or else the system's; a runner with
+        a Flatpak launches that when neither is found."""
         if "runner_executable" in self.runner_config:
             runner_executable: str = self.runner_config["runner_executable"]
             if os.path.isfile(runner_executable):
                 return runner_executable
 
-        if self.runner_executable_path:
-            exe = os.path.join(settings.RUNNER_DIR, self.runner_executable_path)
-            if os.path.isfile(exe):
-                return exe
         if self.system_executable and (exe := system.find_executable(self.system_executable)):
             return exe
-        raise MissingExecutableError(_("The %s executable could not be found.") % self.human_name)
+        if self.flatpak_id:
+            raise MissingExecutableError(
+                _("%s is not installed. Install %s from Flathub.") % (self.human_name, self.flatpak_id)
+            )
+        raise MissingExecutableError(
+            _("The %s executable could not be found. Install it, or set its executable in the runner options.")
+            % self.human_name
+        )
+
+    def get_flatpak_filesystems(self) -> list[str]:
+        """Return the paths the runner's Flatpak needs access to: the game's folder and every
+        file or folder in the game and runner configuration."""
+        paths = [self.game_path] if self.game_path else []
+        for config in (self.game_config, self.runner_config):
+            for key, value in config.items():
+                values = value if isinstance(value, list) else [value]
+                if key != "runner_executable":
+                    paths.extend(item for item in values if isinstance(item, str) and item.startswith(("/", "~")))
+        return paths
 
     def get_command(self) -> list[str]:
         """Returns the command line to run the runner itself; generally a game
@@ -278,8 +287,8 @@ class Runner:  # pylint: disable=too-many-public-methods
                 raise MissingExecutableError(_("The executable '%s' could not be found.") % exe)
             command = [exe]
         except MisconfigurationError:
-            if flatpak.is_app_installed(self.flatpak_id):
-                return flatpak.get_run_command(cast(str, self.flatpak_id))
+            if self.flatpak_id and flatpak.is_app_installed(self.flatpak_id):
+                return flatpak.get_run_command(self.flatpak_id, self.get_flatpak_filesystems())
 
             raise
 
@@ -584,11 +593,8 @@ class Runner:  # pylint: disable=too-many-public-methods
 
     @property
     def can_install(self) -> bool:
-        return (
-            self.upstream is not None
-            and bool(self.runner_executable_path)
-            and self.upstream_arch in (None, LINUX_SYSTEM.arch)
-        )
+        """True if Lutris can install the runner, which it does from Flathub."""
+        return bool(self.flatpak_id) and flatpak.is_installed()
 
     def install(
         self,
@@ -596,19 +602,18 @@ class Runner:  # pylint: disable=too-many-public-methods
         version: str | None = None,
         callback: Callable[[], None] | None = None,
     ) -> None:
-        """Download the newest build the runner's developers publish into its folder."""
-        if not self.can_install or self.upstream is None:
+        """Install the runner's Flatpak from Flathub."""
+        if not self.flatpak_id or not self.can_install:
             raise NonInstallableRunnerError(
-                _("A managed build of %s is unavailable. Install it locally and configure its executable in Lutris.")
+                _("Lutris can't install %s. Install it yourself, or set its executable in the runner options.")
                 % self.human_name,
             )
         try:
-            build = self.upstream.find()
-        except (UpstreamError, HTTPError, ValueError) as ex:
-            raise RunnerInstallationError(_("Failed to find a build of %s: %s") % (self.human_name, ex)) from ex
-        logger.info("Installing %s %s from %s", self.name, build.version, build.url)
-        executable = os.path.relpath(os.path.join(settings.RUNNER_DIR, self.runner_executable_path), self.directory)
-        self.download_and_extract(build.url, install_ui_delegate, self.directory, executable, callback)
+            flatpak.install_app(self.flatpak_id)
+        except flatpak.FlatpakError as ex:
+            raise RunnerInstallationError(ex.message) from ex
+        if callback:
+            callback()
 
     def download_and_extract(
         self,
@@ -651,16 +656,8 @@ class Runner:  # pylint: disable=too-many-public-methods
                 extract_archive(archive, str(staged), merge_single=merge_single)
                 if executable:
                     entry_point = staged / executable
-                    source = entry_point
-                    if not source.exists() and source.suffix.casefold() == ".appimage":
-                        # Upstream AppImage filenames may include the release version
-                        appimages = list(entry_point.parent.glob("*.appimage", case_sensitive=False))
-                        if len(appimages) == 1:
-                            source = appimages[0]
-                    if not source.is_file() or not source.resolve().is_relative_to(staged.resolve()):
+                    if not entry_point.is_file() or not entry_point.resolve().is_relative_to(staged.resolve()):
                         raise ExtractError(_("The archive is missing %s.") % executable)
-                    if source != entry_point:
-                        source.rename(entry_point)
                     system.make_executable(str(entry_point))
                 if destination.exists():
                     shutil.copytree(staged, destination, dirs_exist_ok=True, symlinks=True)

@@ -8,11 +8,15 @@ setup_test_environment()
 
 class TestJsonRunners(unittest.TestCase):
     def test_runner_name_from_json(self):
-        """The 'name' key sets runner_name, which puts the executable in the
-        runner's own subdirectory of the runners dir."""
+        """The 'name' key sets runner_name, and a runner without a Flatpak uses its system executable."""
         ags = load_json_runners()["ags"]()
         self.assertEqual(ags.runner_name, "ags")
-        self.assertEqual(ags.runner_executable_path, "ags/data/ags64")
+        self.assertEqual(ags.system_executable, "ags")
+        self.assertIsNone(ags.flatpak_id)
+
+    def test_flatpak_id_from_json(self):
+        """The 'flatpak_id' key names the Flathub app the runner launches."""
+        self.assertEqual(load_json_runners()["ruffle"]().flatpak_id, "rs.ruffle.Ruffle")
 
     def test_platforms_list(self):
         """A list of platforms names each platform after itself."""

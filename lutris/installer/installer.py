@@ -19,6 +19,7 @@ from lutris.services import SERVICES
 from lutris.util.game_finder import find_linux_game_executable, find_windows_game_executable
 from lutris.util.log import logger
 from lutris.util.moddb import ModDB, is_moddb_url
+from lutris.util.retroarch.substitutes import translate_script
 from lutris.util.system import fix_path_case
 
 # Matches the $GAMEDIR (or ${GAMEDIR}) variable that expands to the install directory
@@ -44,6 +45,8 @@ class LutrisInstaller:  # pylint: disable=too-many-instance-attributes
 
         if not self.script:
             raise ScriptingError(_("This installer doesn't have a 'script' section"))
+        # Scripts for emulators that RetroArch cores replaced, or that were renamed, use their successors
+        self.runner, self.script = translate_script(self.runner, self.script)
 
         self.service = self.get_service(initial=service)
         self.service_appid = self.get_appid(installer, initial=appid)

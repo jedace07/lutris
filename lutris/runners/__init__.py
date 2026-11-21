@@ -1,32 +1,15 @@
 """Runner loaders"""
 
 __all__ = [
-    "azahar",
-    "cemu",
-    "dolphin",
-    "dosbox",
-    "duckstation",
-    "easyrpg",
     "eden",
-    "fsuae",
-    "hatari",
     "libretro",
     "linux",
-    "mame",
-    "openmsx",
-    "pcsx2",
     "pico8",
-    "rpcs3",
     "ryubing",
-    "scummvm",
     "shadps4",
     "steam",
-    "uzdoom",
-    "vita3k",
     "web",
     "wine",
-    "xemu",
-    "xenia",
 ]
 
 from collections.abc import Callable

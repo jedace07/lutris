@@ -8,18 +8,20 @@ import pytest
 
 from lutris import settings
 from lutris.delegates import InstallUIDelegate
+from lutris.runners import NonInstallableRunnerError
+from lutris.runners.libretro import libretro
 from lutris.runners.runner import Runner
-from lutris.runners.xenia import xenia
-from lutris.util.upstream import FileSource
+from lutris.util import flatpak
+from lutris.util.retroarch import locations
 
 
-def test_managed_install_keeps_appimages_inside_archives(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_download_and_extract_publishes_the_archive(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "CACHE_DIR", str(tmp_path / "cache"))
     destination = tmp_path / "runner"
 
-    def download(url: str, path: str) -> bool:
-        with tarfile.open(path, "w:gz") as archive:
-            for name in ("wrapper/runner", "wrapper/assets/Runner.AppImage"):
+    def download(url: str, destination: str) -> bool:
+        with tarfile.open(destination, "w:gz") as archive:
+            for name in ("wrapper/runner", "wrapper/assets/data.bin"):
                 data = b"fixture"
                 info = tarfile.TarInfo(name)
                 info.size = len(data)
@@ -30,56 +32,42 @@ def test_managed_install_keeps_appimages_inside_archives(tmp_path: Path, monkeyp
     delegate.download_install_file = download
     Runner().download_and_extract("https://example.invalid/runner.tar.gz", delegate, str(destination), "runner")
     assert os.access(destination / "runner", os.X_OK)
-    assert (destination / "assets" / "Runner.AppImage").read_bytes() == b"fixture"
+    assert (destination / "assets" / "data.bin").read_bytes() == b"fixture"
     assert not list((tmp_path / "cache").iterdir())
 
 
-@pytest.mark.parametrize("filename", ["Runner-v2.appimage", "runner.zip"])
-def test_managed_install_resolves_appimage_entry_point(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, filename: str
-) -> None:
-    monkeypatch.setattr(settings, "CACHE_DIR", str(tmp_path / "cache"))
-    destination = tmp_path / "runner"
-
-    def download(url: str, path: str) -> bool:
-        if filename.endswith(".zip"):
-            with ZipFile(path, "w") as archive:
-                archive.writestr("wrapper/Runner-v2.appimage", b"fixture")
-        else:
-            Path(path).write_bytes(b"fixture")
-        return True
-
-    delegate = InstallUIDelegate()
-    delegate.download_install_file = download
-    Runner().download_and_extract(f"https://example.invalid/{filename}", delegate, str(destination), "Runner.AppImage")
-
-    executable = destination / "Runner.AppImage"
-    assert executable.read_bytes() == b"fixture"
-    assert os.access(executable, os.X_OK)
-    assert not (destination / "Runner-v2.appimage").exists()
-
-
-def test_xenia_installs_its_emulator_inside_its_runner_directory(
+def test_libretro_installs_cores_where_the_retroarch_flatpak_loads_them(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(settings, "RUNNER_DIR", str(tmp_path / "runners"))
+    """Cores go into the RetroArch Flatpak's own cores directory, as its updater puts them."""
     monkeypatch.setattr(settings, "CACHE_DIR", str(tmp_path / "cache"))
-    runner = xenia()
-    runner.upstream = FileSource("https://example.invalid/xenia.tar.gz")
-    runner.upstream_arch = None
+    monkeypatch.setattr(locations, "get_app_dir", lambda appid: tmp_path / ".var" / "app" / appid)
+    monkeypatch.setattr(flatpak, "is_app_installed", lambda appid: appid == "org.libretro.RetroArch")
+    urls: list[str] = []
 
-    def download(url: str, path: str) -> bool:
-        with tarfile.open(path, "w:gz") as archive:
-            data = b"fixture"
-            info = tarfile.TarInfo("xenia_canary.exe")
-            info.size = len(data)
-            archive.addfile(info, io.BytesIO(data))
+    def download(url: str, destination: str) -> bool:
+        urls.append(url)
+        with ZipFile(destination, "w") as archive:
+            archive.writestr("mgba_libretro.so", b"core")
         return True
 
     delegate = InstallUIDelegate()
     delegate.download_install_file = download
-
-    assert not runner.is_installed()
-    runner.install(delegate, version="ge-proton")
+    runner = libretro()
     assert runner.is_installed()
-    assert Path(runner.game_exe) == tmp_path / "runners" / "xenia" / "xenia_canary.exe"
+    assert not runner.is_installed(core="mgba")
+
+    runner.install(delegate, version="mgba")
+
+    core = tmp_path / ".var/app/org.libretro.RetroArch/config/retroarch/cores/mgba_libretro.so"
+    assert core.read_bytes() == b"core"
+    assert urls[0].endswith("/latest/mgba_libretro.so.zip")
+    assert runner.is_installed(core="mgba")
+
+
+def test_runners_without_a_flatpak_cannot_be_installed() -> None:
+    runner = Runner()
+    runner.system_executable = "an-emulator"
+    assert not runner.can_install
+    with pytest.raises(NonInstallableRunnerError):
+        runner.install(InstallUIDelegate())
