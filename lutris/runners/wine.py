@@ -13,8 +13,6 @@ from lutris.api import normalize_version_architecture
 from lutris.config import LutrisConfig, is_option_visible
 from lutris.database.games import get_game_by_field
 from lutris.exceptions import (
-    EsyncLimitError,
-    FsyncUnsupportedError,
     MisconfigurationError,
     MissingExecutableError,
     MissingGameExecutableError,
@@ -62,8 +60,6 @@ from lutris.util.wine.wine import (
     get_runner_files_dir_for_version,
     get_system_wine_version,
     get_wine_path_for_version,
-    is_esync_limit_set,
-    is_fsync_supported,
     is_gstreamer_build,
     is_winewayland_available,
 )
@@ -141,26 +137,6 @@ def _get_exe_warning(_option_key: str, config: LutrisConfig) -> str | None:
     if not os.path.isfile(exe):
         return _("<b>Warning</b> Executable file does not exist")
 
-    return None
-
-
-def _get_esync_warning(_option_key: str, config: LutrisConfig) -> str | None:
-    if config.runner_config.get("esync"):
-        limits_set = is_esync_limit_set()
-        if not limits_set:
-            return _(
-                "<b>Warning</b> Your limits are not set correctly. Please increase them as described here:\n"
-                "<a href='https://github.com/lutris/docs/blob/master/HowToEsync.md'>"
-                "How-to-Esync (https://github.com/lutris/docs/blob/master/HowToEsync.md)</a>"
-            )
-    return ""
-
-
-def _get_fsync_warning(_option_key: str, config: LutrisConfig) -> str | None:
-    if config.runner_config.get("fsync"):
-        fsync_supported = is_fsync_supported()
-        if not fsync_supported:
-            return _("<b>Warning</b> Your kernel is not patched for fsync.")
     return None
 
 
@@ -319,33 +295,6 @@ class wine(Runner):
             "help": _(
                 "Enable Proton's support for High Dynamic Range graphics. "
                 "Requires Wayland selected as Graphics backend."
-            ),
-        },
-        {
-            "option": "esync",
-            "label": _("Enable Esync"),
-            "type": "bool",
-            "warning": _get_esync_warning,
-            "active": True,
-            "default": True,
-            "help": _(
-                "Enable eventfd-based synchronization (esync). "
-                "This will increase performance in applications "
-                "that take advantage of multi-core processors."
-            ),
-        },
-        {
-            "option": "fsync",
-            "label": _("Enable Fsync"),
-            "type": "bool",
-            "default": is_fsync_supported,
-            "warning": _get_fsync_warning,
-            "active": True,
-            "help": _(
-                "Enable futex-based synchronization (fsync). "
-                "This will increase performance in applications "
-                "that take advantage of multi-core processors. "
-                "Requires kernel 5.16 or above."
             ),
         },
         {
@@ -1182,20 +1131,6 @@ class wine(Runner):
         if self.prefix_path:
             env["WINEPREFIX"] = self.prefix_path
 
-        if "WINEESYNC" not in env:
-            env["WINEESYNC"] = "1" if self.runner_config.get("esync") else "0"
-
-        # Proton uses an env-var with the opposite sense!
-        if "PROTON_NO_ESYNC" not in env and not self.runner_config.get("esync"):
-            env["PROTON_NO_ESYNC"] = "1"
-
-        if "WINEFSYNC" not in env:
-            env["WINEFSYNC"] = "1" if self.runner_config.get("fsync") else "0"
-
-        # Proton uses an env-var with the opposite sense!
-        if "PROTON_NO_FSYNC" not in env and not self.runner_config.get("fsync"):
-            env["PROTON_NO_FSYNC"] = "1"
-
         if self.runner_config.get("fsr"):
             env["WINE_FULLSCREEN_FSR"] = "1"
 
@@ -1304,18 +1239,6 @@ class wine(Runner):
 
         if not game_exe or not system.path_exists(game_exe):
             raise MissingGameExecutableError(filename=game_exe)
-
-        if launch_info["env"].get("WINEESYNC") == "1":
-            limit_set = is_esync_limit_set()
-
-            if not limit_set:
-                raise EsyncLimitError()
-
-        if launch_info["env"].get("WINEFSYNC") == "1":
-            fsync_supported = is_fsync_supported()
-
-            if not fsync_supported:
-                raise FsyncUnsupportedError()
 
         command = self.get_command()
 

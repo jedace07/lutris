@@ -263,8 +263,6 @@ Example: ``version: staging-2.21-x86_64``
 DXVK and VKD3D come with Proton, so scripts don't choose them; ``dxvk``,
 ``dxvk_version``, ``vkd3d`` and their kind are ignored.
 
-``esync``: Use this to disable esync. (``esync: false``)
-
 ``overrides``: Overrides for Wine DLLs. List your DLL overrides in a
 mapping with the following values:
 

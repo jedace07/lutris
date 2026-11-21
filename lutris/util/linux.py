@@ -4,7 +4,6 @@ import json
 import os
 import platform
 import re
-import resource
 import shutil
 import sys
 from collections import Counter, defaultdict
@@ -113,7 +112,6 @@ class LinuxSystem:  # pylint: disable=too-many-public-methods
         "/usr/share/soundfonts",
     ]
 
-    recommended_no_file_open = 524288
     required_components = ["OPENGL", "VULKAN", "GNUTLS"]
     optional_components = ["WINE", "GAMEMODE"]
 
@@ -135,7 +133,6 @@ class LinuxSystem:  # pylint: disable=too-many-public-methods
         self.is_64_bit = sys.maxsize > 2**32
         self.arch = self.get_arch()
         self.populate_sound_fonts()
-        self.soft_limit, self.hard_limit = self.get_file_limits()
 
         # Expensive fields are lazy; see properties below.
         self._shared_libraries: dict[str, list[SharedLibrary]] | None = None
@@ -168,13 +165,6 @@ class LinuxSystem:  # pylint: disable=too-many-public-methods
             if os.path.exists(command_path):
                 return command_path
         return None
-
-    @staticmethod
-    def get_file_limits() -> tuple[int, int]:
-        return resource.getrlimit(resource.RLIMIT_NOFILE)
-
-    def has_enough_file_descriptors(self) -> bool:
-        return self.hard_limit >= self.recommended_no_file_open
 
     @staticmethod
     def get_cpus() -> list[dict[str, str]]:

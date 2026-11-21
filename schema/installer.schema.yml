@@ -536,9 +536,6 @@ definitions:
       dxvk_version:
         type: string
         description: DXVK version override
-      esync:
-        type: boolean
-        description: Enable ESync
       overrides:
         type: array
         description: Overrides for Wine DLLs
