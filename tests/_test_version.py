@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from importlib.metadata import version as distribution_version
 from pathlib import Path
 
@@ -6,46 +8,46 @@ import pytest
 from lutris import __version__, version
 
 
-def test_version_matches_pyproject():
+def test_version_matches_pyproject() -> None:
     pyproject_path = Path(__file__).resolve().parents[1] / "pyproject.toml"
     assert __version__ == version.read_project_version(pyproject_path)
 
 
 @pytest.mark.parametrize("app_version", ["0.5.23", "0.5.23.post1"])
-def test_release_artifact_version_is_unchanged(app_version):
+def test_release_artifact_version_is_unchanged(app_version: str) -> None:
     assert version.build_artifact_version(app_version, {}) == app_version
 
 
 @pytest.mark.parametrize("app_version", ["0.6.0a1", "0.6.0b1", "0.6.0rc1", "0.6.0.dev1"])
-def test_local_prerelease_artifact_version(app_version):
+def test_local_prerelease_artifact_version(app_version: str) -> None:
     assert version.build_artifact_version(app_version, {}) == f"{app_version}+local"
 
 
-def test_github_prerelease_artifact_version_uses_short_sha():
+def test_github_prerelease_artifact_version_uses_short_sha() -> None:
     environment = {"GITHUB_ACTIONS": "true", "GITHUB_SHA": "ABCDEF0123456789ABCDEF0123456789ABCDEF01"}
     assert version.build_artifact_version("0.6.0b1", environment) == "0.6.0b1+gabcdef0"
 
 
 @pytest.mark.parametrize("github_sha", ["", "123456", "not-a-git-sha"])
-def test_github_prerelease_artifact_version_rejects_invalid_sha(github_sha):
+def test_github_prerelease_artifact_version_rejects_invalid_sha(github_sha: str) -> None:
     environment = {"GITHUB_ACTIONS": "true", "GITHUB_SHA": github_sha}
     with pytest.raises(ValueError, match="GITHUB_SHA"):
         version.build_artifact_version("0.6.0b1", environment)
 
 
-def test_artifact_version_rejects_local_metadata():
+def test_artifact_version_rejects_local_metadata() -> None:
     with pytest.raises(ValueError, match="must not contain local metadata"):
         version.build_artifact_version("0.6.0b1+custom", {})
 
 
-def test_pyproject_of_another_project_is_rejected(tmp_path):
+def test_pyproject_of_another_project_is_rejected(tmp_path: Path) -> None:
     pyproject_path = tmp_path / "pyproject.toml"
     pyproject_path.write_text('[project]\nname = "unrelated"\nversion = "1.0.0"\n', encoding="utf-8")
     with pytest.raises(ValueError, match="does not describe"):
         version.read_project_version(pyproject_path)
 
 
-def test_source_version_comes_from_pyproject(monkeypatch, tmp_path):
+def test_source_version_comes_from_pyproject(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     module_path = tmp_path / "lutris" / "version.py"
     module_path.parent.mkdir()
     module_path.touch()
@@ -56,7 +58,7 @@ def test_source_version_comes_from_pyproject(monkeypatch, tmp_path):
     assert version.read_version() == "1.2.3"
 
 
-def test_unrelated_parent_pyproject_is_ignored(monkeypatch, tmp_path):
+def test_unrelated_parent_pyproject_is_ignored(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     # An installed copy nested somewhere under another project's tree
     module_path = tmp_path / "site-packages" / "lutris" / "version.py"
     module_path.parent.mkdir(parents=True)
@@ -74,7 +76,7 @@ def test_installed_version_comes_from_package_metadata(monkeypatch: pytest.Monke
     assert version.read_version() == distribution_version("lutris")
 
 
-def test_unknown_version_without_any_source(monkeypatch):
+def test_unknown_version_without_any_source(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(version, "_read_source_version", lambda: None)
     monkeypatch.setattr(version, "_read_installed_version", lambda: None)
 

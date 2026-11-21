@@ -10,16 +10,21 @@ This module must stay importable on its own (no lutris imports), since CI runs i
 as a plain script.
 """
 
+from __future__ import annotations
+
 import argparse
 import os
 import re
 import tomllib
-from collections.abc import Mapping, Sequence
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as distribution_version
 from pathlib import Path
+from typing import TYPE_CHECKING, cast
 
 from packaging.version import InvalidVersion, Version
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
 
 PROJECT_NAME = "lutris"
 UNKNOWN_VERSION = "0.0.0"
@@ -28,14 +33,17 @@ _GITHUB_SHA_PATTERN = re.compile(r"[0-9a-fA-F]{7,64}")
 
 def read_project_version(pyproject_path: Path) -> str:
     """Read and validate the version from a pyproject.toml describing Lutris."""
-    pyproject = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
-    project = pyproject.get("project")
-    if not isinstance(project, dict) or project.get("name") != PROJECT_NAME:
-        raise ValueError(f"{pyproject_path} does not describe the {PROJECT_NAME} project")
+    pyproject: dict[str, object] = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+    project_value = pyproject.get("project")
+    project = cast("dict[str, object]", project_value) if isinstance(project_value, dict) else None
+    if project is None or project.get("name") != PROJECT_NAME:
+        msg = f"{pyproject_path} does not describe the {PROJECT_NAME} project"
+        raise ValueError(msg)
 
     project_version = project.get("version")
     if not isinstance(project_version, str) or not project_version:
-        raise ValueError(f"{pyproject_path} does not contain a project version")
+        msg = f"{pyproject_path} does not contain a project version"
+        raise ValueError(msg)
 
     Version(project_version)
     return project_version
@@ -50,7 +58,8 @@ def build_artifact_version(app_version: str, environment: Mapping[str, str] | No
     """
     parsed = Version(app_version)
     if parsed.local is not None:
-        raise ValueError("The canonical project version must not contain local metadata")
+        msg = "The canonical project version must not contain local metadata"
+        raise ValueError(msg)
     if not (parsed.is_prerelease or parsed.is_devrelease):
         return app_version
 
@@ -60,14 +69,18 @@ def build_artifact_version(app_version: str, environment: Mapping[str, str] | No
 
     github_sha = build_environment.get("GITHUB_SHA", "")
     if _GITHUB_SHA_PATTERN.fullmatch(github_sha) is None:
-        raise ValueError("GITHUB_SHA must contain between 7 and 64 hexadecimal characters when GITHUB_ACTIONS=true")
+        msg = "GITHUB_SHA must contain between 7 and 64 hexadecimal characters when GITHUB_ACTIONS=true"
+        raise ValueError(msg)
     return f"{app_version}+g{github_sha[:7].lower()}"
 
 
 def _read_source_version() -> str | None:
     """Return the version from pyproject.toml when running from a checkout."""
     module_path = Path(__file__).resolve()
-    project_root = module_path.parents[1]
+    try:
+        project_root = module_path.parents[1]
+    except IndexError:
+        return None
     # Only trust a pyproject.toml that sits right above this very package, not
     # whatever project an installed copy happens to be nested in
     if (project_root / PROJECT_NAME / module_path.name).resolve() != module_path:
