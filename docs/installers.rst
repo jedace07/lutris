@@ -181,7 +181,7 @@ Example: ``main_file: game.rom``.
 Can also be used to pass the URL for web based games: ``main_file: http://www...``
 
 ``args``: Pass additional arguments to the command.
-Can be used with linux, wine, dosbox, scummvm, pico8 and zdoom runners.
+Can be used with linux, wine, dosbox, scummvm, pico8 and uzdoom runners.
 Example: ``args: -c $GAMEDIR/exult.cfg``
 
 ``working_dir``: Set the working directory for the game executable.

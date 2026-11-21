@@ -681,14 +681,6 @@
         "lineCount": 1
       }
     ],
-    "lutris/runners/reicast.py": [
-      {
-        "rule": "no-matching-overload",
-        "startColumn": 16,
-        "endColumn": 85,
-        "lineCount": 1
-      }
-    ],
     "lutris/runners/runner.py": [
       {
         "rule": "redundant-cast",

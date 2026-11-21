@@ -83,14 +83,16 @@ properties:
       - ags
       - azahar
       - basiliskii
+      - blastem
       - cemu
-      - dgen
       - dolphin
       - dosbox
       - duckstation
       - easyrpg
-      - frotz
+      - eden
+      - flycast
       - fsuae
+      - gargoyle
       - hatari
       - libretro
       - linux
@@ -102,24 +104,22 @@ properties:
       - pcsx2
       - pico8
       - ppsspp
-      - reicast
       - rosaliesmupengui
       - rpcs3
       - ruffle
-      - ryujinx
+      - ryubing
       - scummvm
       - shadps4
       - sheepshaver
       - steam
       - supermodel
       - tic80
+      - uzdoom
       - vita3k
       - web
       - wine
       - xemu
       - xenia
-      - yuzu
-      - zdoom
   script:
     description: Main script
     type: object

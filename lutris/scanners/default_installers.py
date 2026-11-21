@@ -83,7 +83,7 @@ DEFAULT_INSTALLERS = {
     },
     "gamecube": {"runner": "dolphin", "game": {"main_file": "rom", "platform": "0"}},
     "wii": {"runner": "dolphin", "game": {"main_file": "rom", "platform": "1"}},
-    "switch": {"runner": "yuzu", "game": {"main_file": "rom"}},
+    "switch": {"runner": "ryubing", "game": {"main_file": "rom"}},
     "ps1": {
         "runner": "libretro",
         "game": {"core": "mednafen_psx_hw", "main_file": "rom"},

@@ -7,29 +7,25 @@ from lutris.exceptions import MissingGameExecutableError
 from lutris.runners.runner import Runner
 from lutris.util import system
 from lutris.util.log import logger
+from lutris.util.upstream import ReleaseSource
 
 
-class ryujinx(Runner):
-    human_name = _("Ryujinx")
+class eden(Runner):
+    human_name = _("Eden")
     platform_dict = Runner.to_platform_dict([_("Nintendo Switch")])
     description = _("Nintendo Switch emulator")
     runnable_alone = True
-    runner_executable = "ryujinx/publish/Ryujinx"
-    flatpak_id = "io.github.ryubing.Ryujinx"
-
+    runner_executable = "eden/Eden.AppImage"
+    system_executable = "eden"
+    upstream = ReleaseSource("eden-emu/eden", r"^Eden-Linux-.*-amd64-gcc-standard\.AppImage$", host="git.eden-emu.dev")
+    upstream_arch = "x86_64"
     game_options = [
         {
             "option": "main_file",
             "type": "file",
-            "label": _("NSP file"),
+            "label": _("ROM file"),
             "help": _("The game data, commonly called a ROM image."),
-        },
-        {
-            "option": "application_id",
-            "type": "string",
-            "label": _("Application ID"),
-            "help": _("Select which app to launch for a multi-game XCI image"),
-        },
+        }
     ]
     runner_options = [
         {
@@ -44,12 +40,18 @@ class ryujinx(Runner):
             "type": "file",
             "help": _("File containing the title keys."),
         },
+        {
+            "option": "fullscreen",
+            "label": _("Fullscreen"),
+            "type": "bool",
+            "default": True,
+        },
     ]
 
     @property
-    def ryujinx_data_dir(self):
-        """Return dir where Ryujinx files lie."""
-        candidates = ("~/.local/share/ryujinx",)
+    def data_dir(self):
+        """Return dir where Eden files lie."""
+        candidates = ("~/.local/share/eden",)
         for candidate in candidates:
             path = system.fix_path_case(os.path.join(os.path.expanduser(candidate), "nand"))
             if system.path_exists(path):
@@ -58,26 +60,27 @@ class ryujinx(Runner):
     def play(self):
         """Run the game."""
         arguments = self.get_command()
+
+        fullscreen = self.runner_config.get("fullscreen")
+        if fullscreen:
+            arguments.append("-f")
+
         rom = self.game_config.get("main_file") or ""
         if not system.path_exists(rom):
             raise MissingGameExecutableError(filename=rom)
-
-        if app_id := self.game_config.get("application_id"):
-            arguments.append("--application-id")
-            arguments.append(app_id)
-        arguments.append(rom)
+        arguments += ["-g", rom]
         return {"command": arguments}
 
     def _update_key(self, key_type):
         """Update a keys file if set"""
-        ryujinx_data_dir = self.ryujinx_data_dir
-        if not ryujinx_data_dir:
-            logger.error("Ryujinx data dir not set")
+        data_dir = self.data_dir
+        if not data_dir:
+            logger.error("Eden data dir not set")
             return
         if key_type == "prod_keys":
-            key_loc = os.path.join(ryujinx_data_dir, "keys/prod.keys")
+            key_loc = os.path.join(data_dir, "keys/prod.keys")
         elif key_type == "title_keys":
-            key_loc = os.path.join(ryujinx_data_dir, "keys/title.keys")
+            key_loc = os.path.join(data_dir, "keys/title.keys")
         else:
             logger.error("Invalid keys type %s!", key_type)
             return
