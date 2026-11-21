@@ -180,7 +180,6 @@ _FEATURES: tuple[tuple[str, Callable[[], object]], ...] = (
     (_("Wine installed"), is_installed_systemwide),
     (_("Gamescope"), lambda: system.can_find_executable("gamescope")),
     (_("Mangohud"), lambda: system.can_find_executable("mangohud")),
-    (_("Gamemode"), linux.LINUX_SYSTEM.gamemode_available),
     (_("Steam"), linux.LINUX_SYSTEM.has_steam),
     (_("In Flatpak"), linux.LINUX_SYSTEM.is_flatpak),
 )

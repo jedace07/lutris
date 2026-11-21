@@ -80,7 +80,6 @@ SYSTEM_COMPONENTS = {
         "VULKAN": ["libvulkan.so.1"],
         "WINE": ["libsqlite3.so.0"],
         "RADEON": ["libvulkan_radeon.so"],
-        "GAMEMODE": ["libgamemodeauto.so"],
         "GNUTLS": ["libgnutls.so.30"],
     },
 }
@@ -113,7 +112,7 @@ class LinuxSystem:  # pylint: disable=too-many-public-methods
     ]
 
     required_components = ["OPENGL", "VULKAN", "GNUTLS"]
-    optional_components = ["WINE", "GAMEMODE"]
+    optional_components = ["WINE"]
 
     _glxinfo_unset = object()
 
@@ -251,10 +250,6 @@ class LinuxSystem:  # pylint: disable=too-many-public-methods
             info = kernel_info.readlines()[0]
             version = info.split(" ")[2]
         return version
-
-    def gamemode_available(self) -> bool:
-        """Return whether gamemode is available"""
-        return system.can_find_executable("gamemoderun")
 
     def nvidia_gamescope_support(self) -> bool:
         """Return whether gamescope is supported if we're on nvidia"""

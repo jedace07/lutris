@@ -176,9 +176,6 @@ class steam(Runner):
             % DEFAULT_LAUNCH_GRACE_SECONDS,
         },
     ]
-    system_options_override = [
-        {"option": "gamemode", "default": False},
-    ]
 
     # Cache the reaper-PID scan for a fraction of a heartbeat so the two calls
     # in a single Game.beat() (filter_game_pids + keep_game_alive) only walk

@@ -343,14 +343,6 @@ class fsuae(Runner):
             "advanced": True,
         },
         {
-            "option": "gamemode",
-            "label": _("Feral GameMode"),
-            "type": "bool",
-            "default": False,
-            "advanced": True,
-            "help": _("Automatically uses Feral GameMode daemon if available. Set to true to disable the feature."),
-        },
-        {
             "option": "govwarning",
             "label": _("CPU governor warning"),
             "type": "bool",
@@ -438,8 +430,6 @@ class fsuae(Runner):
             params.append("--jit_compiler=1")
         if self.runner_config.get("bsdsocket"):
             params.append("--bsdsocket_library=1")
-        if self.runner_config.get("gamemode"):
-            params.append("--game_mode=0")
         if self.runner_config.get("govwarning"):
             params.append("--governor_warning=0")
         if self.runner_config.get("scanlines"):
